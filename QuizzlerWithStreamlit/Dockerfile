@@ -1,0 +1,16 @@
+FROM python:3.9-slim
+COPY . /app
+WORKDIR /app
+RUN pip install -r requirements.txt
+
+# Make port 80 available to the world outside this container
+EXPOSE 80
+
+# Streamlit-specific commands 
+RUN cp config.toml ~/.streamlit/config.toml
+RUN cp credentials.toml ~/.streamlit/credentials.toml
+WORKDIR /app
+
+# Define the default command to run when the container starts
+ENTRYPOINT ["streamlit", "run"]
+CMD ["main.py"]
