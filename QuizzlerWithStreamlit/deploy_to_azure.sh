@@ -21,7 +21,7 @@ az group create --name $RESOURCE_GROUP --location $LOCATION
 az acr create --name $CONTAINER_REGISTRY_NAME --resource-group $RESOURCE_GROUP --sku $CONTAINER_REGISTRY_SKU --admin-enabled true 
 
 # Step 3: Build a Docker image and save it to Azure Container Registry
-az acr build --registry $CONTAINER_REGISTRY_NAME --resource-group $RESOURCE_GROUP --image $DOCKER_IMAGE_NAME
+az acr build --registry $CONTAINER_REGISTRY_NAME --resource-group $RESOURCE_GROUP --image $DOCKER_IMAGE_NAME .
 
 # Step 4: Create an App Service Plan for your web app
 az appservice plan create -n $PLAN_NAME -g $RESOURCE_GROUP -l $LOCATION --is-linux --sku $PLAN_SKU
