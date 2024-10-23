@@ -10,9 +10,11 @@ $APP_NAME="QuizzlerApp"
 $CONTAINER_REGISTRY_NAME="quizzlerappregistry"
 $CONTAINER_REGISTRY_SKU="basic"
 $DOCKER_IMAGE_NAME="quizzler-app"
+$DOCKER_IMAGE_TAG="latest"
 $PLAN_NAME="QuizzlerAppServicePlan"
 $PLAN_SKU="F1" # F1: free 60 mins/day
 $WEBAPP_NAME="quizzler-web-app"
+
 
 # Step 1: Create a Resource Group
 az group create --name $RESOURCE_GROUP --location $LOCATION
@@ -27,7 +29,7 @@ az acr build --registry $CONTAINER_REGISTRY_NAME --resource-group $RESOURCE_GROU
 az appservice plan create -n $PLAN_NAME -g $RESOURCE_GROUP -l $LOCATION --is-linux --sku $PLAN_SKU
 
 # Step 5: Deploy a Web App from a Docker image 
-az webapp create -g $RESOURCE_GROUP -p $PLAN_NAME -n $WEBAPP_NAME -i $CONTAINER_REGISTRY_NAME.azurecr.io/$DOCKER_IMAGE_NAME:latest
+az webapp create -g $RESOURCE_GROUP -p $PLAN_NAME -n $WEBAPP_NAME -i $CONTAINER_REGISTRY_NAME.azurecr.io/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 # Step 6: Output Web App URL
 $WEBAPP_URL=$(az webapp show --name $WEBAPP_NAME --resource-group $RESOURCE_GROUP --query defaultHostName --output tsv)
