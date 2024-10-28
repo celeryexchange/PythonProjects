@@ -140,12 +140,8 @@ az logic workflow create `
     --location $LOCATION `
     --definition @$LOGIC_APP_DEFINITION_PATH
 
-# # Step 10: Enable system-assigned identity for the Logic App
-# # This step doesn't work with my current Azure CLI version
-# az logic workflow update `
-#   --resource-group $RESOURCE_GROUP `
-#   --name $LOGIC_APP_NAME `
-#   --identity '{"type": "SystemAssigned"}'
+# Step 10: Create system-assigned identity for the Logic App
+# Do this manually
 
 # Step 11: Create/assign the "Contributor" role to the logic app (within the context of the Resource Group)
 # Do this manually
