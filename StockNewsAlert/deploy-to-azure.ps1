@@ -89,7 +89,7 @@ az container create --resource-group $RESOURCE_GROUP --name $ACI_NAME --image $a
   --registry-username $(az acr credential show --name $CONTAINER_REGISTRY_NAME --query "username" -o tsv) `
   --registry-password $(az acr credential show --name $CONTAINER_REGISTRY_NAME --query "passwords[0].value" -o tsv) `
   --registry-login-server "$CONTAINER_REGISTRY_NAME.azurecr.io" `
-  --environment-variables ALPHA_VANTAGE_API_KEY=$AlphaVantageApiKey NEWS_API_KEY=$NewsApiKey TWILIO_ACCOUNT_SID=$TwilioAccountSID TWILIO_AUTH_TOKEN=$TwilioAuthToken
+  --environment-variables ALPHA_VANTAGE_API_KEY=$AlphaVantageApiKey NEWS_API_KEY=$NewsApiKey TWILIO_ACCOUNT_SID=$TwilioAccountSID TWILIO_AUTH_TOKEN=$TwilioAuthToken `
   --restart-policy Never
 
 # not tested below this point
@@ -128,3 +128,5 @@ az container create --resource-group $RESOURCE_GROUP --name $ACI_NAME --image $a
 #     }
 # }
 # "@
+
+# read: https://learn.microsoft.com/en-us/azure/logic-apps/sample-logic-apps-cli-script#prerequisites
