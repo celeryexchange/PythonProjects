@@ -1,0 +1,28 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowDefinition.json#",
+        "actions": {
+            "RunContainer": {
+                "type": "Http",
+                "inputs": {
+                    "method": "POST",
+                    "uri": "https://management.azure.com/subscriptions/cd032bfb-ae83-4851-8a2d-1e5620e64633/resourceGroups/StockAlertApp/providers/Microsoft.ContainerInstance/containerGroups/news-alert-app-container/start?api-version=2018-10-01",
+                    "authentication": {
+                        "type": "ManagedServiceIdentity"
+                    }
+                }
+            }
+        },
+        "triggers": {
+            "Recurrence": {
+                "type": "Recurrence",
+                "recurrence": {
+                    "frequency": "Day",
+                    "interval": 1,
+                    "timeZone": "UTC",
+                    "startTime": "2024-10-28T20:00:00Z"
+                }
+            }
+        }
+    }
+}

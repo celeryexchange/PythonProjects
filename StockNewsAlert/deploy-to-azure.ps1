@@ -16,6 +16,9 @@ $WEBAPP_NAME="stock-alert--web-app"
 $LOGIC_APP_NAME="StockAlertAppLogicApp"
 $ACI_NAME="news-alert-app-container"
 
+# Look up this variable from the currently active subscription
+$SUBSCRIPTION_ID =$(az account show --query "id" -o tsv)
+
 # Step 1: Create a Resource Group
 az group create --name $RESOURCE_GROUP --location $LOCATION
 
@@ -92,41 +95,58 @@ az container create --resource-group $RESOURCE_GROUP --name $ACI_NAME --image $a
   --environment-variables ALPHA_VANTAGE_API_KEY=$AlphaVantageApiKey NEWS_API_KEY=$NewsApiKey TWILIO_ACCOUNT_SID=$TwilioAccountSID TWILIO_AUTH_TOKEN=$TwilioAuthToken `
   --restart-policy Never
 
-# not tested below this point
+# Step 8: Create a JSON file to configure triggering the Azure Container Instances daily at 8pm
+$LOGIC_APP_DEFINITION_PATH = ".\logicAppDefinition.json"
+$LOGIC_APP_DEFINITION = @"
+{
+    "definition": {
+        "`$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowDefinition.json#",
+        "actions": {
+            "RunContainer": {
+                "type": "Http",
+                "inputs": {
+                    "method": "POST",
+                    "uri": "https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerInstance/containerGroups/$ACI_NAME/start?api-version=2018-10-01",
+                    "authentication": {
+                        "type": "ManagedServiceIdentity"
+                    }
+                }
+            }
+        },
+        "triggers": {
+            "Recurrence": {
+                "type": "Recurrence",
+                "recurrence": {
+                    "frequency": "Day",
+                    "interval": 1,
+                    "timeZone": "UTC",
+                    "startTime": "2024-10-28T17:00:00Z"
+                }
+            }
+        }
+    }
+}
+"@
 
-# # Step 8: Schedule the script to run daily using Logic Apps
-# az logic workflow create --resource-group $RESOURCE_GROUP --name $LOGIC_APP_NAME --definition @"
-# {
-#     "definition": {
-#         "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowDefinition.json#",
-#         "actions": {
-#             "RunContainer": {
-#                 "type": "Http",
-#                 "inputs": {
-#                     "method": "POST",
-#                     "uri": "https://management.azure.com/subscriptions/<subscription-id>/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerInstance/containerGroups/$ACI_NAME/start?api-version=2018-10-01",
-#                     "headers": {
-#                         "Content-Type": "application/json"
-#                     },
-#                     "authentication": {
-#                         "type": "ManagedServiceIdentity"
-#                     }
-#                 }
-#             }
-#         },
-#         "triggers": {
-#             "Recurrence": {
-#                 "type": "Recurrence",
-#                 "recurrence": {
-#                     "frequency": "Day",
-#                     "interval": 1,
-#                     "timeZone": "UTC",
-#                     "time": "20:00:00"
-#                 }
-#             }
-#         }
-#     }
-# }
-# "@
+# create the JSON definitions file
+Set-Content -Path $LOGIC_APP_DEFINITION_PATH -Value $LOGIC_APP_DEFINITION
 
-# read: https://learn.microsoft.com/en-us/azure/logic-apps/sample-logic-apps-cli-script#prerequisites
+# Step 9: Schedule the script to run daily using Logic Apps
+az logic workflow create `
+    --resource-group $RESOURCE_GROUP `
+    --name $LOGIC_APP_NAME `
+    --location $LOCATION `
+    --definition @$LOGIC_APP_DEFINITION_PATH
+
+# # Enable system-assigned identity for the Logic App
+# # This step doesn't work with my current Azure CLI version
+# az logic workflow update `
+#   --resource-group $RESOURCE_GROUP `
+#   --name $LOGIC_APP_NAME `
+#   --identity '{"type": "SystemAssigned"}'
+
+# Step 10: Remove the JSON definitions file after deployment
+Remove-Item -Path $LOGIC_APP_DEFINITION_PATH -Force
+
+# Step 11: Create/assign the "Contributor" role to the logic app (within the context of the Resource Group)
+# Do this manually
