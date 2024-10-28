@@ -1,3 +1,5 @@
+# (Warning) Manual action needed for Steps 10-11 (creating identity and assigning role)
+
 # code assumes you're using Azure CLI and Powershell and are already logged in
 # az login
 
@@ -138,15 +140,15 @@ az logic workflow create `
     --location $LOCATION `
     --definition @$LOGIC_APP_DEFINITION_PATH
 
-# # Enable system-assigned identity for the Logic App
+# # Step 10: Enable system-assigned identity for the Logic App
 # # This step doesn't work with my current Azure CLI version
 # az logic workflow update `
 #   --resource-group $RESOURCE_GROUP `
 #   --name $LOGIC_APP_NAME `
 #   --identity '{"type": "SystemAssigned"}'
 
-# Step 10: Remove the JSON definitions file after deployment
-Remove-Item -Path $LOGIC_APP_DEFINITION_PATH -Force
-
 # Step 11: Create/assign the "Contributor" role to the logic app (within the context of the Resource Group)
 # Do this manually
+
+# Step 12: Remove the JSON definitions file after deployment
+Remove-Item -Path $LOGIC_APP_DEFINITION_PATH -Force
