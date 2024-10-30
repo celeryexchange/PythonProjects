@@ -6,25 +6,69 @@ from datetime import datetime, timedelta
 from twilio.rest import Client
 import logging
 import sys
+import yaml
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
 
 
-logging.basicConfig(level=logging.INFO)
-logging.info("Loading environment variables.")
-load_dotenv()
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
 
+# variables
 STOCK = "TSLA"
 STOCK_ENDPOINT = "https://www.alphavantage.co/query"
-ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
-
 COMPANY_NAME = "Tesla Inc"
 NEWS_ENDPOINT = "https://newsapi.org/v2/everything"
-NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+# settings
+with open("config.yaml", "r") as f:
+    config_d = yaml.safe_load(f)
+
+get_secrets_from_setting = config_d["get_secrets_from"].lower()
+azure_key_vault_name = config_d["azure_key_vault_name"].lower()
+
+# secrets
+logging.info("Loading API secrets.")
+
+if get_secrets_from_setting not in ('azure', 'env'):
+    raise ValueError("The `get_secrets_from` setting encountered an invalid value. Possible options are `azure` or `env`.")
+
+if get_secrets_from_setting == 'env':
+    # Load environment variables from .env file
+    load_dotenv()
+
+    # Retrieve the secrets
+    ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
+    NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+    TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+    TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+
+    logging.info("Loaded API secrets from environment.")
+
+elif get_secrets_from_setting == 'azure':
+
+    # Initialize credentials using the Managed Identity
+    azure_credential = DefaultAzureCredential()
+
+    # Key Vault URL
+    key_vault_url = f"https://{azure_key_vault_name}.vault.azure.net/"
+
+    # Initialize the SecretClient with Key Vault URL and credential
+    azure_client = SecretClient(vault_url=key_vault_url, credential=azure_credential)
+
+    # Retrieve the secrets
+    ALPHA_VANTAGE_API_KEY = azure_client.get_secret("ALPHA-VANTAGE-API-KEY").value
+    NEWS_API_KEY = azure_client.get_secret("NEWS-API-KEY").value
+    TWILIO_ACCOUNT_SID = azure_client.get_secret("TWILIO-ACCOUNT-SID").value
+    TWILIO_AUTH_TOKEN = azure_client.get_secret("TWILIO-AUTH-TOKEN").value
+
+    logging.info("Loaded API secrets from Azure Key Vault.")
 
 if not ALPHA_VANTAGE_API_KEY or not NEWS_API_KEY or not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
-    raise ValueError("API Secrets must be set as environment variables.")
+    raise ValueError("API Secrets must not be null.")
 
 
 def is_yesterday(date: str) -> bool:
@@ -72,6 +116,9 @@ def get_stock_prices() -> pd.DataFrame:
 
 def get_news() -> pd.DataFrame:
 
+    today = datetime.now().date()
+    yesterday = (today + timedelta(days=-1)).strftime('%Y-%m-%d')
+
     url = NEWS_ENDPOINT
     payload = {
         "apiKey": NEWS_API_KEY,
@@ -79,6 +126,7 @@ def get_news() -> pd.DataFrame:
         "language": "en",
         "pageSize": 20,  # number of results to return per page
         "sortBy": "relevancy",  # relevancy, publishedAt, popularity
+        "from": yesterday,
     }
     r = requests.get(url, params=payload)
     news_data = r.json()
@@ -134,8 +182,10 @@ def main():
         text_message = f"{STOCK}: {latest_net_change_pct:.2f}% {get_emoji(latest_net_change_pct)} {article_source}: {article_title} at {article_url}"
 
         send_text(text_message)
-        print('Message has been sent.')
-        sys.exit(0)
+        logging.info("Message has been sent.")
+    else:
+        logging.info("Nothing to do.")
+    sys.exit(0)
 
 if __name__ == "__main__":
     main()

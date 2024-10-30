@@ -2,3 +2,6 @@ requests
 python-dotenv
 pandas
 twilio
+azure-identity
+azure-keyvault-secrets
+pyyaml
