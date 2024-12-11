@@ -18,7 +18,8 @@ az container logs --resource-group $RESOURCE_GROUP --name $ACI_NAME
 ```powershell
 az keyvault purge --name StockAlertAppKeyVault --location westeurope
 ```
-* Your Resources must often be assigned explicit privileges before being able to talk to each other, even if they're in the same Resource Group. Assigning Resource privileges can be done in several ways including: (a) creating resource identity which creates an ID and assigning specific privileges from another Resource to that ID; (b) creating and assigning roles to resources (e.g. "Contributor"); ... . 
+* Your Resources must often be assigned explicit privileges before being able to talk to each other, even if they're in the same Resource Group. Assigning Resource privileges can be done in several ways including: (a) creating resource identity which creates an ID and assigning specific privileges from another Resource to that ID; (b) creating and assigning roles to resources (e.g. "Contributor"); ... .
+* In Powershell, it's allowed to use underscores (`_`) in variable names such as `ALPHA_VANTAGE_API_KEY`. However, Azure Key Vault allows only hyphens (`-`), so the variable name must be changed to `ALPHA-VANTAGE-API-KEY`. Just for the record, hyphens are allowed in variables in Powershell too if they're inside curly brackets such as `${ALPHA-VANTAGE-API-KEY}`.   
 
 ### Architecture 
 
