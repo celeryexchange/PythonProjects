@@ -24,9 +24,9 @@ az keyvault purge --name StockAlertAppKeyVault --location westeurope
 
 #### APIs
 
-* **Twilio API** for sending text messages
-* **Alpha Vantage API** for checking the stock prices
-* **News API** for checking news
+* **[Twilio API](https://www.twilio.com/docs)** for sending text messages
+* **[Alpha Vantage API](https://www.alphavantage.co/documentation/)** for checking the stock prices
+* **[News API](https://newsapi.org/)** for checking news
 
 #### Deployment 
 
