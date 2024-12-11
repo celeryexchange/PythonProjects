@@ -27,21 +27,31 @@ $LOG_ANALYTICS_KEY = $(az monitor log-analytics workspace get-shared-keys `
     -o tsv)
 
 $LOG_ANALYTICS_WORKSPACE_ID = $(az monitor log-analytics workspace show `
-  --resource-group $LOG_ANALYTICS_RESOURCE_GROUP `
-  --workspace-name $LOG_ANALYTICS_WORKSPACE_NAME `
-  --query customerId -o tsv)
+    --resource-group $LOG_ANALYTICS_RESOURCE_GROUP `
+    --workspace-name $LOG_ANALYTICS_WORKSPACE_NAME `
+    --query customerId -o tsv)
 
 # Step 1: Create a Resource Group
-az group create --name $RESOURCE_GROUP --location $LOCATION
+az group create `
+    --name $RESOURCE_GROUP `
+    --location $LOCATION
 
 # Step 2: Create an Azure Container Registry (for Docker image)
-az acr create --resource-group $RESOURCE_GROUP --name $CONTAINER_REGISTRY_NAME --sku $CONTAINER_REGISTRY_SKU --admin-enabled true
+# admin mode is required to deploy an image directly to Azure Container Instances
+az acr create `
+    --resource-group $RESOURCE_GROUP `
+    --name $CONTAINER_REGISTRY_NAME `
+    --sku $CONTAINER_REGISTRY_SKU `
+    --admin-enabled true
 
-# Step 3: Create an Azure Key Vault for secret management
-az keyvault create --resource-group $RESOURCE_GROUP --name $KEY_VAULT_NAME --location $LOCATION
+# Step 3: Create an Azure Key Vault for secrets management
+az keyvault create `
+    --resource-group $RESOURCE_GROUP `
+    --name $KEY_VAULT_NAME `
+    --location $LOCATION
 
 # Step 4: Load secrets from .env into local scope before sending them to Azure Key Vault
-# This helps me not expose the secrets in this code
+# This helps me to not expose the secrets in this file
 
 # Define the path to the .env file
 $envFilePath = ".\.env"
@@ -79,22 +89,36 @@ if (Test-Path $envFilePath) {
     Write-Host "Error: .env file not found at path $envFilePath"
 }
 
-# Step 5: Add secrets to Azure Key Vault
-az keyvault secret set --vault-name $KEY_VAULT_NAME --name "ALPHA-VANTAGE-API-KEY" --value $Env:ALPHA_VANTAGE_API_KEY
-az keyvault secret set --vault-name $KEY_VAULT_NAME --name "NEWS-API-KEY" --value $Env:NEWS_API_KEY
-az keyvault secret set --vault-name $KEY_VAULT_NAME --name "TWILIO-ACCOUNT-SID" --value $Env:TWILIO_ACCOUNT_SID
-az keyvault secret set --vault-name $KEY_VAULT_NAME --name "TWILIO-AUTH-TOKEN" --value $Env:TWILIO_AUTH_TOKEN
+# Step 5: Add API secrets to Azure Key Vault
+# Azure Key Vault does not allow underscores (_) in name
+az keyvault secret set `
+    --vault-name $KEY_VAULT_NAME `
+    --name "ALPHA-VANTAGE-API-KEY" `
+    --value $Env:ALPHA_VANTAGE_API_KEY
+
+az keyvault secret set `
+    --vault-name $KEY_VAULT_NAME `
+    --name "NEWS-API-KEY" `
+    --value $Env:NEWS_API_KEY
+
+az keyvault secret set `
+    --vault-name $KEY_VAULT_NAME `
+    --name "TWILIO-ACCOUNT-SID" `
+    --value $Env:TWILIO_ACCOUNT_SID
+
+az keyvault secret set `
+    --vault-name $KEY_VAULT_NAME `
+    --name "TWILIO-AUTH-TOKEN" `
+    --value $Env:TWILIO_AUTH_TOKEN
 
 # Step 6: Build a Docker image and push it to Azure Container Registry
-az acr build --registry $CONTAINER_REGISTRY_NAME --resource-group $RESOURCE_GROUP --image $DOCKER_IMAGE_NAME .
+az acr build `
+    --registry $CONTAINER_REGISTRY_NAME `
+    --resource-group $RESOURCE_GROUP `
+    --image $DOCKER_IMAGE_NAME .
 
-# Get secrets from Key Vault to pass into the container
-$AlphaVantageApiKey = az keyvault secret show --vault-name $KEY_VAULT_NAME --name "ALPHA-VANTAGE-API-KEY" --query "value" -o tsv
-$NewsApiKey = az keyvault secret show --vault-name $KEY_VAULT_NAME --name "NEWS-API-KEY" --query "value" -o tsv
-$TwilioAccountSID = az keyvault secret show --vault-name $KEY_VAULT_NAME --name "TWILIO-ACCOUNT-SID" --query "value" -o tsv
-$TwilioAuthToken = az keyvault secret show --vault-name $KEY_VAULT_NAME --name "TWILIO-AUTH-TOKEN" --query "value" -o tsv
-
-# Deploy the container with ACI and with a System-Assigned Managed Identity
+# Deploy the container with Azure Container Instance (ACI)
+# create it with a System-Assigned Managed Identity
 $acrImageUrl = "${CONTAINER_REGISTRY_NAME}.azurecr.io/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
 az container create `
   --resource-group $RESOURCE_GROUP `
@@ -107,12 +131,19 @@ az container create `
   --registry-password $(az acr credential show --name $CONTAINER_REGISTRY_NAME --query "passwords[0].value" -o tsv) `
   --restart-policy Never `
   --log-analytics-workspace $LOG_ANALYTICS_WORKSPACE_ID `
-  --log-analytics-workspace-key $LOG_ANALYTICS_KEY `
-#   --secure-environment-variables ALPHA_VANTAGE_API_KEY=$AlphaVantageApiKey NEWS_API_KEY=$NewsApiKey TWILIO_ACCOUNT_SID=$TwilioAccountSID TWILIO_AUTH_TOKEN=$TwilioAuthToken `
+  --log-analytics-workspace-key $LOG_ANALYTICS_KEY
 
-# # Step 8: Grant ACI access to Azure Key Vault
-$ACI_PRINCIPAL_ID = $(az container show --name $ACI_NAME --resource-group $RESOURCE_GROUP --query "identity.principalId" -o tsv)
-az keyvault set-policy --name $KEY_VAULT_NAME --secret-permissions get --object-id $ACI_PRINCIPAL_ID
+# Step 7: Use Azure Key Vault to grant ACI read-access to its secrets
+$ACI_PRINCIPAL_ID = $(az container show `
+    --name $ACI_NAME `
+    --resource-group $RESOURCE_GROUP `
+    --query "identity.principalId" `
+    -o tsv)
+
+az keyvault set-policy `
+    --name $KEY_VAULT_NAME `
+    --secret-permissions get `
+    --object-id $ACI_PRINCIPAL_ID
 
 
 # Step 8: Create a JSON file to configure triggering the Azure Container Instances daily at 8pm
@@ -123,6 +154,7 @@ $LOGIC_APP_DEFINITION = @"
         "`$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowDefinition.json#",
         "actions": {
             "RunContainer": {
+                "runAfter": {},
                 "type": "Http",
                 "inputs": {
                     "method": "POST",
@@ -140,7 +172,7 @@ $LOGIC_APP_DEFINITION = @"
                     "frequency": "Day",
                     "interval": 1,
                     "timeZone": "UTC",
-                    "startTime": "2024-10-28T17:00:00Z"
+                    "startTime": "2024-10-28T19:00:00Z"
                 }
             }
         }
@@ -152,20 +184,41 @@ $LOGIC_APP_DEFINITION = @"
 Set-Content -Path $LOGIC_APP_DEFINITION_PATH -Value $LOGIC_APP_DEFINITION
 
 # Step 9: Schedule the script to run daily using Logic Apps
+# create it with a system-assigned identity so that we can give it the "Contributor" role
+# can't give it managed identity using my outdated Azure CLI
 az logic workflow create `
     --resource-group $RESOURCE_GROUP `
     --name $LOGIC_APP_NAME `
     --location $LOCATION `
-    --definition @$LOGIC_APP_DEFINITION_PATH `
-    --mi-system-assigned true
+    --definition @$LOGIC_APP_DEFINITION_PATH
+#     --mi-system-assigned yes
 
 # Step 10: Create system-assigned identity for the Logic App
-# ref: https://learn.microsoft.com/en-us/cli/azure/logic/workflow/identity?view=azure-cli-latest#az-logic-workflow-identity-assign
 # Do this manually
+
+# # This code is not supported in my version of Azure CLI (2.37.0)
+# # ref: https://learn.microsoft.com/en-us/cli/azure/logic/workflow/identity?view=azure-cli-latest#az-logic-workflow-identity-assign
+# az logic workflow identity assign `
+#     --resource-group $RESOURCE_GROUP `
+#     --name $LOGIC_APP_NAME `
+#     --system-assigned true
 
 # Step 11: Create/assign the "Contributor" role to the logic app (within the context of the Resource Group)
 # ref: https://learn.microsoft.com/en-us/cli/azure/role/assignment?view=azure-cli-latest#az-role-assignment-create
 # Do this manually
+
+$ALA_PRINCIPAL_ID = $(az logic workflow show `
+    --name $LOGIC_APP_NAME `
+    --resource-group $RESOURCE_GROUP `
+    --query "identity.principalId" `
+    -o tsv)
+
+az role assignment create `
+    --role Contributor `
+    --assignee $ALA_PRINCIPAL_ID `
+    --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
+
+
 
 
 
