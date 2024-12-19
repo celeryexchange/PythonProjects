@@ -1,0 +1,4 @@
+# azure: load secrets from Azure Key Vault
+# env: load secrets from environment variables
+get_secrets_from: azure
+azure_key_vault_name: StockAlertAppKeyVault
