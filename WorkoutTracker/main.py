@@ -1,7 +1,6 @@
-import requests
-from dotenv import load_dotenv
 import os
-from api_managers import NutritionixClient
+from dotenv import load_dotenv
+from api_managers import NutritionixClient, SheetyClient
 
 
 # Local environment variables from a local .env file
@@ -11,18 +10,17 @@ load_dotenv()
 API_ID = os.getenv("NUTRITIONIX_APP_ID")
 API_KEY = os.getenv("NUTRITIONIX_API_KEY")
 
-print(f"API_APP_ID: {API_ID}")
-print(f"API_KEY: {API_KEY}")
+# print(f"API_APP_ID: {API_ID}")
+# print(f"API_KEY: {API_KEY}")
+
+# Instantiate API Clients
+nutritionix_client = NutritionixClient(api_id=API_ID, api_key=API_KEY)
+sheety_client = SheetyClient()
+
+# Ask the user to describe what exercises they did
+answer = input("What exercises did you do today? ")
+exercise_data = nutritionix_client.process_exercise(query=answer)
+sheety_client.post_exercise(exercise_data)
 
 
-
-
-# Example usage
-get_exercise_data(api_exercise_endpoint, API_ID, API_KEY)
-
-
-
-
-# response = requests.post(api_authentication_endpoint, headers=headers)
-# print(response.text)
 
