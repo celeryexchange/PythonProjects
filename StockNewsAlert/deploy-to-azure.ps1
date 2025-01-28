@@ -148,40 +148,6 @@ az keyvault set-policy `
 
 # Step 8: Create a JSON file to configure triggering the Azure Container Instances daily at 8pm
 $LOGIC_APP_DEFINITION_PATH = ".\logicAppDefinition.json"
-$LOGIC_APP_DEFINITION = @"
-{
-    "definition": {
-        "`$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowDefinition.json#",
-        "actions": {
-            "RunContainer": {
-                "runAfter": {},
-                "type": "Http",
-                "inputs": {
-                    "method": "POST",
-                    "uri": "https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.ContainerInstance/containerGroups/$ACI_NAME/start?api-version=2018-10-01",
-                    "authentication": {
-                        "type": "ManagedServiceIdentity"
-                    }
-                }
-            }
-        },
-        "triggers": {
-            "Recurrence": {
-                "type": "Recurrence",
-                "recurrence": {
-                    "frequency": "Day",
-                    "interval": 1,
-                    "timeZone": "UTC",
-                    "startTime": "2024-10-28T19:00:00Z"
-                }
-            }
-        }
-    }
-}
-"@
-
-# create the JSON definitions file
-Set-Content -Path $LOGIC_APP_DEFINITION_PATH -Value $LOGIC_APP_DEFINITION
 
 # Step 9: Schedule the script to run daily using Logic Apps
 # create it with a system-assigned identity so that we can give it the "Contributor" role
@@ -207,16 +173,16 @@ az logic workflow create `
 # ref: https://learn.microsoft.com/en-us/cli/azure/role/assignment?view=azure-cli-latest#az-role-assignment-create
 # Do this manually
 
-$ALA_PRINCIPAL_ID = $(az logic workflow show `
-    --name $LOGIC_APP_NAME `
-    --resource-group $RESOURCE_GROUP `
-    --query "identity.principalId" `
-    -o tsv)
-
-az role assignment create `
-    --role Contributor `
-    --assignee $ALA_PRINCIPAL_ID `
-    --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
+# $ALA_PRINCIPAL_ID = $(az logic workflow show `
+#     --name $LOGIC_APP_NAME `
+#     --resource-group $RESOURCE_GROUP `
+#     --query "identity.principalId" `
+#     -o tsv)
+#
+# az role assignment create `
+#     --role Contributor `
+#     --assignee $ALA_PRINCIPAL_ID `
+#     --scope "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP"
 
 
 
