@@ -1,4 +1,25 @@
 # azure: load secrets from Azure Key Vault
 # env: load secrets from environment variables
 get_secrets_from: azure
+
+# If secrets are stored in Azure, you must manually 
+# provide the name of your Azure Key Vault here 
+# If you don't have a Key Vault yet, you need to create it 
 azure_key_vault_name: StockAlertAppKeyVault
+
+# Azure
+resource_group: StockAlertApp
+location: westeurope
+container_registry_name: stockalertappregistry
+container_registry_sku: basic
+docker_image_name: stock-alert-app
+docker_image_tag: latest
+key_vault_name: StockAlertAppKeyVault
+logic_app_name: StockAlertAppLogicApp
+aci_name: news-alert-app-container
+log_analytics_workspace_name: LogAnalyticsWorkspace
+log_analytics_resource_group: LogAnalytics
+
+# Azure subscription id
+# $SUBSCRIPTION_ID =$(az account show --query "id" -o tsv)
+subscription_id: cd032bfb-ae83-4851-8a2d-1e5620e64633
