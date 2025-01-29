@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Employee Roster Overview" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee Roster Overview</title>
+  <!-- Google Fonts (optional) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link 
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500&display=swap" 
+    rel="stylesheet"
+  >
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: #fafafa;
+      color: #333;
+    }
+
+    header {
+      background: #2A79FF;
+      color: #fff;
+      padding: 1rem 2rem;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-weight: 500;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .filter-section {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .filter-section select {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .filter-section label {
+      font-weight: 500;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    thead {
+      background: #f1f1f1;
+    }
+
+    th, td {
+      padding: 1rem;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      font-weight: 500;
+    }
+
+    tr:hover {
+      background: #f9f9f9;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1rem;
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Employee Roster Overview</h1>
+  </header>
+
+  <main>
+    <!-- Filter Section -->
+    <div class="filter-section">
+      <label for="week-select">Week:</label>
+      <select id="week-select">
+        <option value="current">Upcoming Week</option>
+        <option value="previous">Previous Week</option>
+      </select>
+
+      <label for="location-select">Location:</label>
+      <select id="location-select">
+        <option value="all">All Locations</option>
+        <option value="new-york">New York</option>
+        <option value="london">London</option>
+        <option value="remote">Remote</option>
+      </select>
+    </div>
+
+    <!-- Roster Table -->
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Monday</th>
+          <th>Tuesday</th>
+          <th>Wednesday</th>
+          <th>Thursday</th>
+          <th>Friday</th>
+        </tr>
+      </thead>
+      <tbody id="roster-body">
+        <!-- Rows will be populated by JavaScript -->
+      </tbody>
+    </table>
+  </main>
+
+  <footer>
+    &copy; <span id="year"></span> Your Company
+  </footer>
+
+  <script>
+    // Sample data: employee roster for current & previous week, and location info
+    // You can modify this structure to fit your real data or fetch from an API.
+    const rosterData = {
+      current: [
+        {
+          name: "Alice Johnson",
+          location: "new-york",
+          days: ["Office", "Office", "Remote", "Office", "Office"]
+        },
+        {
+          name: "Bob Smith",
+          location: "london",
+          days: ["Office", "Office", "Office", "Remote", "Office"]
+        },
+        {
+          name: "Charlie Chen",
+          location: "remote",
+          days: ["Remote", "Remote", "Remote", "Remote", "Remote"]
+        },
+        {
+          name: "Diana Prince",
+          location: "new-york",
+          days: ["Office", "Remote", "Office", "Office", "Office"]
+        },
+        {
+          name: "Ethan Clark",
+          location: "london",
+          days: ["Remote", "Office", "Office", "Office", "Remote"]
+        },
+      ],
+      previous: [
+        {
+          name: "Alice Johnson",
+          location: "new-york",
+          days: ["Office", "Office", "Office", "Remote", "Office"]
+        },
+        {
+          name: "Bob Smith",
+          location: "london",
+          days: ["Remote", "Office", "Office", "Office", "Office"]
+        },
+        {
+          name: "Charlie Chen",
+          location: "remote",
+          days: ["Remote", "Remote", "Remote", "Remote", "Remote"]
+        },
+        {
+          name: "Diana Prince",
+          location: "new-york",
+          days: ["Office", "Office", "Remote", "Office", "Office"]
+        },
+        {
+          name: "Ethan Clark",
+          location: "london",
+          days: ["Office", "Remote", "Office", "Office", "Office"]
+        },
+      ],
+    };
+
+    const weekSelect = document.getElementById('week-select');
+    const locationSelect = document.getElementById('location-select');
+    const rosterBody = document.getElementById('roster-body');
+    const yearSpan = document.getElementById('year');
+
+    // Initialize the year in the footer
+    yearSpan.textContent = new Date().getFullYear();
+
+    // Function to render table rows based on selected week & location
+    function renderRoster() {
+      const selectedWeek = weekSelect.value;       // "current" or "previous"
+      const selectedLocation = locationSelect.value; // "all", "new-york", "london", "remote"
+
+      // Clear existing rows
+      rosterBody.innerHTML = '';
+
+      // Filter data
+      const filteredData = rosterData[selectedWeek].filter(employee => {
+        return selectedLocation === 'all' || employee.location === selectedLocation;
+      });
+
+      // Create rows
+      filteredData.forEach(employee => {
+        const row = document.createElement('tr');
+
+        // Employee name cell
+        const nameCell = document.createElement('td');
+        nameCell.textContent = employee.name;
+        row.appendChild(nameCell);
+
+        // Days cells (Monday–Friday)
+        employee.days.forEach(day => {
+          const dayCell = document.createElement('td');
+          // Replace "Office" with a green tick; leave blank if "Remote"
+          dayCell.textContent = day === "Office" ? "✅" : "";
+          row.appendChild(dayCell);
+        });
+
+        rosterBody.appendChild(row);
+      });
+    }
+
+    // Event listeners
+    weekSelect.addEventListener('change', renderRoster);
+    locationSelect.addEventListener('change', renderRoster);
+
+    // Initial render
+    renderRoster();
+  </script>
+</body>
+</html>
