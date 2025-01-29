@@ -104,15 +104,9 @@
   <main>
     <!-- Filter Section -->
     <div class="filter-section">
-      <label for="week-select">Week:</label>
-      <select id="week-select">
-        <option value="current">Upcoming Week</option>
-        <option value="previous">Previous Week</option>
-      </select>
-
-      <label for="location-select">Location:</label>
+      <label for="location-select">Filter by location:</label>
       <select id="location-select">
-        <option value="all">All Locations</option>
+        <option value="all">All</option>
         <option value="new-york">New York</option>
         <option value="london">London</option>
         <option value="remote">Remote</option>
@@ -123,16 +117,13 @@
     <table>
       <thead>
         <tr>
-          <th>Employee</th>
-          <th>Monday</th>
-          <th>Tuesday</th>
-          <th>Wednesday</th>
-          <th>Thursday</th>
-          <th>Friday</th>
+          <th>Name</th>
+          <th>Location</th>
+          <th>Days</th>
         </tr>
       </thead>
       <tbody id="roster-body">
-        <!-- Rows will be populated by JavaScript -->
+        <!-- Rows will be inserted here dynamically -->
       </tbody>
     </table>
   </main>
@@ -142,66 +133,6 @@
   </footer>
 
   <script>
-    // Sample data: employee roster for current & previous week, and location info
-    // You can modify this structure to fit your real data or fetch from an API.
-    const rosterData = {
-      current: [
-        {
-          name: "Alice Johnson",
-          location: "new-york",
-          days: ["Office", "Office", "Remote", "Office", "Office"]
-        },
-        {
-          name: "Bob Smith",
-          location: "london",
-          days: ["Office", "Office", "Office", "Remote", "Office"]
-        },
-        {
-          name: "Charlie Chen",
-          location: "remote",
-          days: ["Remote", "Remote", "Remote", "Remote", "Remote"]
-        },
-        {
-          name: "Diana Prince",
-          location: "new-york",
-          days: ["Office", "Remote", "Office", "Office", "Office"]
-        },
-        {
-          name: "Ethan Clark",
-          location: "london",
-          days: ["Remote", "Office", "Office", "Office", "Remote"]
-        },
-      ],
-      previous: [
-        {
-          name: "Alice Johnson",
-          location: "new-york",
-          days: ["Office", "Office", "Office", "Remote", "Office"]
-        },
-        {
-          name: "Bob Smith",
-          location: "london",
-          days: ["Remote", "Office", "Office", "Office", "Office"]
-        },
-        {
-          name: "Charlie Chen",
-          location: "remote",
-          days: ["Remote", "Remote", "Remote", "Remote", "Remote"]
-        },
-        {
-          name: "Diana Prince",
-          location: "new-york",
-          days: ["Office", "Office", "Remote", "Office", "Office"]
-        },
-        {
-          name: "Ethan Clark",
-          location: "london",
-          days: ["Office", "Remote", "Office", "Office", "Office"]
-        },
-      ],
-    };
-
-    const weekSelect = document.getElementById('week-select');
     const locationSelect = document.getElementById('location-select');
     const rosterBody = document.getElementById('roster-body');
     const yearSpan = document.getElementById('year');
@@ -209,46 +140,65 @@
     // Initialize the year in the footer
     yearSpan.textContent = new Date().getFullYear();
 
-    // Function to render table rows based on selected week & location
-    function renderRoster() {
-      const selectedWeek = weekSelect.value;       // "current" or "previous"
-      const selectedLocation = locationSelect.value; // "all", "new-york", "london", "remote"
+    // Function to render table rows based on selected location
+    function renderRoster(rosterData) {
+        const selectedLocation = locationSelect.value; // "all", "new-york", "london", "remote"
 
-      // Clear existing rows
-      rosterBody.innerHTML = '';
+        // Clear existing rows
+        rosterBody.innerHTML = '';
 
-      // Filter data
-      const filteredData = rosterData[selectedWeek].filter(employee => {
-        return selectedLocation === 'all' || employee.location === selectedLocation;
-      });
-
-      // Create rows
-      filteredData.forEach(employee => {
-        const row = document.createElement('tr');
-
-        // Employee name cell
-        const nameCell = document.createElement('td');
-        nameCell.textContent = employee.name;
-        row.appendChild(nameCell);
-
-        // Days cells (Monday–Friday)
-        employee.days.forEach(day => {
-          const dayCell = document.createElement('td');
-          // Replace "Office" with a green tick; leave blank if "Remote"
-          dayCell.textContent = day === "Office" ? "✅" : "";
-          row.appendChild(dayCell);
+        // Filter data
+        const filteredData = rosterData.filter(employee => {
+            return selectedLocation === 'all' || employee.location.toLowerCase() === selectedLocation;
         });
 
-        rosterBody.appendChild(row);
-      });
+        // Create rows
+        filteredData.forEach(employee => {
+            const row = document.createElement('tr');
+
+            // Employee name cell
+            const nameCell = document.createElement('td');
+            nameCell.textContent = employee.name;
+            row.appendChild(nameCell);
+
+            // Employee location cell
+            const locationCell = document.createElement('td');
+            locationCell.textContent = employee.location;
+            row.appendChild(locationCell);
+
+            // Employee days cell
+            const daysCell = document.createElement('td');
+            daysCell.textContent = employee.days;
+            row.appendChild(daysCell);
+
+            // Append row to the table body
+            rosterBody.appendChild(row);
+        });
     }
 
-    // Event listeners
-    weekSelect.addEventListener('change', renderRoster);
-    locationSelect.addEventListener('change', renderRoster);
+    // Fetch data from the API
+    async function fetchRosterData() {
+        try {
+            const response = await fetch('https://api.sheety.co/c6f8b9788c5c073a746d10c302de896a/employeeRoster/roster');
+            const data = await response.json();
+            return data.roster;
+        } catch (error) {
+            console.error('Error fetching roster data:', error);
+            return [];
+        }
+    }
+
+    // Event listener for select element
+    locationSelect.addEventListener('change', async () => {
+        const rosterData = await fetchRosterData();
+        renderRoster(rosterData);
+    });
 
     // Initial render
-    renderRoster();
+    (async () => {
+        const rosterData = await fetchRosterData();
+        renderRoster(rosterData);
+    })();
   </script>
 </body>
 </html>
