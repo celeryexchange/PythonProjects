@@ -107,9 +107,15 @@
       <label for="location-select">Filter by location:</label>
       <select id="location-select">
         <option value="all">All</option>
-        <option value="new-york">New York</option>
+        <option value="slough">Slough</option>
         <option value="london">London</option>
-        <option value="remote">Remote</option>
+        <option value="manchester">Manchester</option>
+        <option value="welwyn">Welwyn</option>
+      </select>
+      <label for="week-select">Filter by week:</label>
+      <select id="week-select">
+        <option value="current">Current Week</option>
+        <option value="upcoming">Upcoming Week</option>
       </select>
     </div>
 
@@ -133,37 +139,63 @@
   </main>
 
   <footer>
-    &copy; <span id="year"></span> Your Company
+    &copy; <span id="year"></span> Tesco Mobile. All rights reserved.
   </footer>
 
   <script>
     const locationSelect = document.getElementById('location-select');
+    const weekSelect = document.getElementById('week-select');
     const rosterBody = document.getElementById('roster-body');
     const yearSpan = document.getElementById('year');
 
     // Initialize the year in the footer
     yearSpan.textContent = new Date().getFullYear();
 
-    // Function to transform the days string into a list of five items
+    // Function to determine the week status
+    function getWeekStatus(weekStartDate) {
+      const currentDate = new Date();
+      const startOfWeek = new Date(currentDate.setDate(currentDate.getDate() - currentDate.getDay()));
+      const endOfWeek = new Date(currentDate.setDate(currentDate.getDate() - currentDate.getDay() + 6));
+      const nextWeekStart = new Date(startOfWeek);
+      nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+      const nextWeekEnd = new Date(endOfWeek);
+      nextWeekEnd.setDate(nextWeekEnd.getDate() + 7);
+
+      const date = new Date(weekStartDate);
+
+      if (date >= startOfWeek && date <= endOfWeek) {
+        return "Current";
+      } else if (date >= nextWeekStart && date <= nextWeekEnd) {
+        return "Upcoming";
+      } else {
+        return "";
+      }
+    }
+
+    // Transform roster data to include week status
     function transformRosterData(rosterData) {
-        const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-        return rosterData.map(employee => {
-            const daysArray = employee.days.split(',').map(day => day.trim());
-            const transformedDays = daysOfWeek.map(day => daysArray.includes(day) ? 'Office' : '');
-            return { ...employee, days: transformedDays };
-        });
+      const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+      return rosterData.map(employee => {
+        const daysArray = employee.days.split(',').map(day => day.trim());
+        const transformedDays = daysOfWeek.map(day => daysArray.includes(day) ? 'Office' : '');
+        const weekStatus = getWeekStatus(employee.weekStartDate);
+        return { ...employee, days: transformedDays, week: weekStatus };
+      });
     }
 
     // Function to render table rows based on selected location
     function renderRoster(rosterData) {
-        const selectedLocation = locationSelect.value; // "all", "new-york", "london", "remote"
+        const selectedLocation = locationSelect.value; // "all", "slough", "london", "welwyn", "manchester"
+        const selectedWeek = weekSelect.value; // "current", "upcoming"
 
         // Clear existing rows
         rosterBody.innerHTML = '';
 
         // Filter data
         const filteredData = rosterData.filter(employee => {
-            return selectedLocation === 'all' || employee.location.toLowerCase() === selectedLocation;
+            const locationMatch = selectedLocation === 'all' || employee.location.toLowerCase() === selectedLocation;
+            const weekMatch = employee.week.toLowerCase() == selectedWeek;
+            return locationMatch && weekMatch;
         });
 
         // Create rows
@@ -183,7 +215,7 @@
             // Employee days cells
             employee.days.forEach(day => {
                 const dayCell = document.createElement('td');
-                dayCell.textContent = day;
+                dayCell.textContent = day === "Office" ? "✅" : "";
                 row.appendChild(dayCell);
             });
 
@@ -204,8 +236,14 @@
         }
     }
 
-    // Event listener for select element
+    // Event listeners for select elements
     locationSelect.addEventListener('change', async () => {
+        const rosterData = await fetchRosterData();
+        const transformedData = transformRosterData(rosterData);
+        renderRoster(transformedData);
+    });
+
+    weekSelect.addEventListener('change', async () => {
         const rosterData = await fetchRosterData();
         const transformedData = transformRosterData(rosterData);
         renderRoster(transformedData);
