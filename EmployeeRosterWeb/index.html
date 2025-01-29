@@ -119,7 +119,11 @@
         <tr>
           <th>Name</th>
           <th>Location</th>
-          <th>Days</th>
+          <th>Monday</th>
+          <th>Tuesday</th>
+          <th>Wednesday</th>
+          <th>Thursday</th>
+          <th>Friday</th>
         </tr>
       </thead>
       <tbody id="roster-body">
@@ -139,6 +143,16 @@
 
     // Initialize the year in the footer
     yearSpan.textContent = new Date().getFullYear();
+
+    // Function to transform the days string into a list of five items
+    function transformRosterData(rosterData) {
+        const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        return rosterData.map(employee => {
+            const daysArray = employee.days.split(',').map(day => day.trim());
+            const transformedDays = daysOfWeek.map(day => daysArray.includes(day) ? 'Office' : '');
+            return { ...employee, days: transformedDays };
+        });
+    }
 
     // Function to render table rows based on selected location
     function renderRoster(rosterData) {
@@ -166,10 +180,12 @@
             locationCell.textContent = employee.location;
             row.appendChild(locationCell);
 
-            // Employee days cell
-            const daysCell = document.createElement('td');
-            daysCell.textContent = employee.days;
-            row.appendChild(daysCell);
+            // Employee days cells
+            employee.days.forEach(day => {
+                const dayCell = document.createElement('td');
+                dayCell.textContent = day;
+                row.appendChild(dayCell);
+            });
 
             // Append row to the table body
             rosterBody.appendChild(row);
@@ -191,13 +207,15 @@
     // Event listener for select element
     locationSelect.addEventListener('change', async () => {
         const rosterData = await fetchRosterData();
-        renderRoster(rosterData);
+        const transformedData = transformRosterData(rosterData);
+        renderRoster(transformedData);
     });
 
     // Initial render
     (async () => {
         const rosterData = await fetchRosterData();
-        renderRoster(rosterData);
+        const transformedData = transformRosterData(rosterData);
+        renderRoster(transformedData);
     })();
   </script>
 </body>
