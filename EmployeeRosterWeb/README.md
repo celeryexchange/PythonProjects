@@ -1,6 +1,6 @@
 # Employee Roster
 
-This is a simple website that shows employee office availablily by week and by location. 
+This is a simple website that shows employee office availability by week and by location. 
 
 ## Services used 
 
