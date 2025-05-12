@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Employee Roster Overview" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee Roster Overview</title>
+  <link  rel="icon" type="image/x-icon" href="https://www.tescomobile.com/media/favicon/default/favicon-32x32.png" />
+  <!-- Google Fonts (optional) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link 
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500&display=swap" 
+    rel="stylesheet"
+  >
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: #fafafa;
+      color: #333;
+    }
+
+    header {
+      background: #00539F;
+      color: #fff;
+      padding: 1rem 2rem;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-weight: 500;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .filter-section {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .filter-section select {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .filter-section label {
+      font-weight: 500;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    thead {
+      background: #f1f1f1;
+    }
+
+    th, td {
+      padding: 1rem;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      font-weight: 500;
+    }
+
+    tr:hover {
+      background: #f9f9f9;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1rem;
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: #555;
+    }
+    </style>
+  </head>
+  <body>
+    <header>
+    <h1 style="font-size: 1rem;">Office Days Overview</h1>
+    </header>
+
+  <main>
+    <!-- Filter Section -->
+    <div class="filter-section">
+      <label for="location-select">Filter by location:</label>
+      <select id="location-select">
+        <option value="all">All</option>
+        <option value="slough">Slough</option>
+        <option value="london">London</option>
+        <option value="manchester">Manchester</option>
+        <option value="welwyn">Welwyn</option>
+      </select>
+      <label for="week-select">Filter by week:</label>
+      <select id="week-select">
+        <option value="current">Current Week</option>
+        <option value="upcoming">Upcoming Week</option>
+      </select>
+    </div>
+
+    <!-- Roster Table -->
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Location</th>
+          <th>Monday</th>
+          <th>Tuesday</th>
+          <th>Wednesday</th>
+          <th>Thursday</th>
+          <th>Friday</th>
+        </tr>
+      </thead>
+      <tbody id="roster-body">
+        <!-- Rows will be inserted here dynamically -->
+      </tbody>
+    </table>
+  </main>
+
+  <footer>
+    &copy; <span id="year"></span> Tesco Mobile. All rights reserved.
+  </footer>
+
+  <script>
+    const locationSelect = document.getElementById('location-select');
+    const weekSelect = document.getElementById('week-select');
+    const rosterBody = document.getElementById('roster-body');
+    const yearSpan = document.getElementById('year');
+
+    // Initialize the year in the footer
+    yearSpan.textContent = new Date().getFullYear();
+
+    // Function to determine the week status
+    function getWeekStatus(weekStartDate) {
+      const currentDate = new Date();
+      const startOfWeek = new Date(currentDate.setDate(currentDate.getDate() - currentDate.getDay()));
+      const endOfWeek = new Date(currentDate.setDate(currentDate.getDate() - currentDate.getDay() + 6));
+      const nextWeekStart = new Date(startOfWeek);
+      nextWeekStart.setDate(nextWeekStart.getDate() + 7);
+      const nextWeekEnd = new Date(endOfWeek);
+      nextWeekEnd.setDate(nextWeekEnd.getDate() + 7);
+
+      const date = new Date(weekStartDate);
+
+      if (date >= startOfWeek && date <= endOfWeek) {
+        return "Current";
+      } else if (date >= nextWeekStart && date <= nextWeekEnd) {
+        return "Upcoming";
+      } else {
+        return "";
+      }
+    }
+
+    // Transform roster data to include week status
+    function transformRosterData(rosterData) {
+      const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+      return rosterData.map(employee => {
+        const daysArray = employee.days.split(',').map(day => day.trim());
+        const transformedDays = daysOfWeek.map(day => daysArray.includes(day) ? 'Office' : '');
+        const weekStatus = getWeekStatus(employee.weekStartDate);
+        return { ...employee, days: transformedDays, week: weekStatus };
+      });
+    }
+
+    // Function to render table rows based on selected location
+    function renderRoster(rosterData) {
+        const selectedLocation = locationSelect.value; // "all", "slough", "london", "welwyn", "manchester"
+        const selectedWeek = weekSelect.value; // "current", "upcoming"
+
+        // Clear existing rows
+        rosterBody.innerHTML = '';
+
+        // Filter data
+        const filteredData = rosterData.filter(employee => {
+            const locationMatch = selectedLocation === 'all' || employee.location.toLowerCase() === selectedLocation;
+            const weekMatch = employee.week.toLowerCase() == selectedWeek;
+            return locationMatch && weekMatch;
+        });
+
+        // Create rows
+        filteredData.forEach(employee => {
+            const row = document.createElement('tr');
+
+            // Employee name cell
+            const nameCell = document.createElement('td');
+            nameCell.textContent = employee.name;
+            row.appendChild(nameCell);
+
+            // Employee location cell
+            const locationCell = document.createElement('td');
+            locationCell.textContent = employee.location;
+            row.appendChild(locationCell);
+
+            // Employee days cells
+            employee.days.forEach(day => {
+                const dayCell = document.createElement('td');
+                dayCell.textContent = day === "Office" ? "✅" : "";
+                row.appendChild(dayCell);
+            });
+
+            // Append row to the table body
+            rosterBody.appendChild(row);
+        });
+    }
+
+    // Fetch data from the API
+    async function fetchRosterData() {
+        try {
+            const response = await fetch('https://api.sheety.co/c6f8b9788c5c073a746d10c302de896a/employeeRoster/roster');
+            const data = await response.json();
+            return data.roster;
+        } catch (error) {
+            console.error('Error fetching roster data:', error);
+            return [];
+        }
+    }
+
+    // Event listeners for select elements
+    locationSelect.addEventListener('change', async () => {
+        const rosterData = await fetchRosterData();
+        const transformedData = transformRosterData(rosterData);
+        renderRoster(transformedData);
+    });
+
+    weekSelect.addEventListener('change', async () => {
+        const rosterData = await fetchRosterData();
+        const transformedData = transformRosterData(rosterData);
+        renderRoster(transformedData);
+    });
+
+    // Initial render
+    (async () => {
+        const rosterData = await fetchRosterData();
+        const transformedData = transformRosterData(rosterData);
+        renderRoster(transformedData);
+    })();
+  </script>
+</body>
+</html>
